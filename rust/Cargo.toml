@@ -1,0 +1,21 @@
+[package]
+name = "rust_lib_qiqiaoban"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+flutter_rust_bridge = "=2.11.1"
+rquickjs = { version = "0.9", features = ["bindgen", "classes", "loader", "futures"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+taffy = "0.7"
+tokio = { version = "1", features = ["rt-multi-thread"] }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

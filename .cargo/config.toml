@@ -1,0 +1,41 @@
+# Android 交叉编译配置。
+#
+# 解决两个问题：
+# 1. rquickjs-sys bindgen 找不到 <stdio.h> → 通过 BINDGEN_EXTRA_CLANG_ARGS 传递 --sysroot
+# 2. dart-sys cc 找不到 aarch64-linux-android-clang → 通过 CC_<target> 指定 NDK clang
+#
+# NDK 路径：如果你的 NDK 版本不同，请全局替换路径中的版本号。
+
+# NDK 工具链基础路径
+# 请根据实际 NDK 版本更新此路径
+
+[target.aarch64-linux-android]
+linker = "/Users/mxc/Library/Android/sdk/ndk/29.0.13846066/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android21-clang"
+
+[target.armv7-linux-androideabi]
+linker = "/Users/mxc/Library/Android/sdk/ndk/29.0.13846066/toolchains/llvm/prebuilt/darwin-x86_64/bin/armv7a-linux-androideabi21-clang"
+
+[target.x86_64-linux-android]
+linker = "/Users/mxc/Library/Android/sdk/ndk/29.0.13846066/toolchains/llvm/prebuilt/darwin-x86_64/bin/x86_64-linux-android21-clang"
+
+[target.i686-linux-android]
+linker = "/Users/mxc/Library/Android/sdk/ndk/29.0.13846066/toolchains/llvm/prebuilt/darwin-x86_64/bin/i686-linux-android21-clang"
+
+[env]
+# bindgen sysroot — 让 clang 找到 Android 平台的标准 C 头文件
+BINDGEN_EXTRA_CLANG_ARGS_aarch64-linux-android = "--sysroot=/Users/mxc/Library/Android/sdk/ndk/29.0.13846066/toolchains/llvm/prebuilt/darwin-x86_64/sysroot"
+BINDGEN_EXTRA_CLANG_ARGS_armv7-linux-androideabi = "--sysroot=/Users/mxc/Library/Android/sdk/ndk/29.0.13846066/toolchains/llvm/prebuilt/darwin-x86_64/sysroot"
+BINDGEN_EXTRA_CLANG_ARGS_x86_64-linux-android = "--sysroot=/Users/mxc/Library/Android/sdk/ndk/29.0.13846066/toolchains/llvm/prebuilt/darwin-x86_64/sysroot"
+BINDGEN_EXTRA_CLANG_ARGS_i686-linux-android = "--sysroot=/Users/mxc/Library/Android/sdk/ndk/29.0.13846066/toolchains/llvm/prebuilt/darwin-x86_64/sysroot"
+
+# CC — 让 cc crate 使用 NDK 的 clang 编译 C 代码（dart-sys 等）
+CC_aarch64-linux-android = "/Users/mxc/Library/Android/sdk/ndk/29.0.13846066/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android21-clang"
+CC_armv7-linux-androideabi = "/Users/mxc/Library/Android/sdk/ndk/29.0.13846066/toolchains/llvm/prebuilt/darwin-x86_64/bin/armv7a-linux-androideabi21-clang"
+CC_x86_64-linux-android = "/Users/mxc/Library/Android/sdk/ndk/29.0.13846066/toolchains/llvm/prebuilt/darwin-x86_64/bin/x86_64-linux-android21-clang"
+CC_i686-linux-android = "/Users/mxc/Library/Android/sdk/ndk/29.0.13846066/toolchains/llvm/prebuilt/darwin-x86_64/bin/i686-linux-android21-clang"
+
+# AR — 让 cc crate 使用 NDK 的 ar 工具
+AR_aarch64-linux-android = "/Users/mxc/Library/Android/sdk/ndk/29.0.13846066/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-ar"
+AR_armv7-linux-androideabi = "/Users/mxc/Library/Android/sdk/ndk/29.0.13846066/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-ar"
+AR_x86_64-linux-android = "/Users/mxc/Library/Android/sdk/ndk/29.0.13846066/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-ar"
+AR_i686-linux-android = "/Users/mxc/Library/Android/sdk/ndk/29.0.13846066/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-ar"

@@ -1,0 +1,28 @@
+PODS:
+  - FlutterMacOS (1.0.0)
+  - qiqiaoban (0.0.1):
+    - FlutterMacOS
+  - rust_lib_qiqiaoban (0.0.1):
+    - FlutterMacOS
+
+DEPENDENCIES:
+  - FlutterMacOS (from `Flutter/ephemeral`)
+  - qiqiaoban (from `Flutter/ephemeral/.symlinks/plugins/qiqiaoban/macos`)
+  - rust_lib_qiqiaoban (from `Flutter/ephemeral/.symlinks/plugins/rust_lib_qiqiaoban/macos`)
+
+EXTERNAL SOURCES:
+  FlutterMacOS:
+    :path: Flutter/ephemeral
+  qiqiaoban:
+    :path: Flutter/ephemeral/.symlinks/plugins/qiqiaoban/macos
+  rust_lib_qiqiaoban:
+    :path: Flutter/ephemeral/.symlinks/plugins/rust_lib_qiqiaoban/macos
+
+SPEC CHECKSUMS:
+  FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
+  qiqiaoban: 703ca57ecdd466e31aa3af28fe2f4ffd7ed8799e
+  rust_lib_qiqiaoban: 6a532c6fc913f6fed725517015120ef41c56bdad
+
+PODFILE CHECKSUM: 54d867c82ac51cbd61b565781b9fada492027009
+
+COCOAPODS: 1.16.2
