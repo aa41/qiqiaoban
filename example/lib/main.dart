@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:qiqiaoban/qiqiaoban.dart';
 
+import 'pages/api_test_page.dart';
 import 'pages/compiler_demo_page.dart';
 import 'pages/component_demo_page.dart';
 import 'pages/component_test_page.dart';
@@ -142,6 +143,13 @@ class HomePage extends StatelessWidget {
                 title: 'DevTools 面板',
                 subtitle: '调试浮层: State / VNode / 性能',
                 page: const DevToolsDemoPage(),
+              ),
+              _DemoItem(
+                icon: Icons.api,
+                color: Colors.cyan,
+                title: 'QQB API 测试',
+                subtitle: '平台 API 功能验证: 网络/存储/文件/界面',
+                page: const ApiTestPage(),
               ),
               const Divider(indent: 16, endIndent: 16),
               _DemoItem(
