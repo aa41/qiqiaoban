@@ -247,6 +247,19 @@ fn collect_render_nodes(
         _ => None,
     };
 
+    // 收集组件特有属性到 extra_props
+    let mut extra_props = std::collections::HashMap::new();
+    for (key, val) in &vnode.props {
+        if key == "content" { continue; }
+        let str_val = match val {
+            crate::vnode::node::PropValue::Str(s) => s.clone(),
+            crate::vnode::node::PropValue::Num(n) => n.to_string(),
+            crate::vnode::node::PropValue::Bool(b) => b.to_string(),
+            crate::vnode::node::PropValue::Null => "null".to_string(),
+        };
+        extra_props.insert(key.clone(), str_val);
+    }
+
     out.push(RenderNode {
         id: vnode.id.to_string(),
         node_type: format!("{:?}", vnode.node_type).to_lowercase(),
@@ -258,6 +271,10 @@ fn collect_render_nodes(
         height: layout.height as f64,
         font_size: vnode.style.font_size.map(|v| v as f64),
         text_color: vnode.style.color.clone(),
+        font_weight: vnode.style.font_weight.clone(),
+        border_radius: vnode.style.border_radius.map(|v| v as f64),
+        opacity: vnode.style.opacity.map(|v| v as f64),
+        extra_props,
         events: vnode.events.keys().cloned().collect(),
         children: vec![],
     });

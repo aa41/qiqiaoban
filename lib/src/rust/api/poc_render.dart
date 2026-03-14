@@ -6,7 +6,7 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `build_layout_node`, `collect_render_tree`, `estimate_text_width`, `is_wide_char`, `parse_style`
+// These functions are ignored because they are not marked as `pub`: `build_layout_node`, `collect_render_tree`, `estimate_text_width`, `is_wide_char`, `parse_style`, `parse_dimension_value`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `NodeMeta`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `fmt`
 
@@ -31,7 +31,11 @@ Future<void> destroyPocEngine() =>
 /// 单个渲染节点的完整信息（树结构）。
 ///
 /// x/y 为相对父节点的坐标，children 保持树形结构。
-/// `node_type` 支持: "view", "text", "scroll-view", "image", "button", "input"
+/// `node_type` 支持: "view", "text", "scroll-view", "image", "button", "input",
+/// "icon", "rich-text", "checkbox", "checkbox-group", "form", "picker",
+/// "picker-view", "radio", "radio-group", "slider", "switch", "textarea",
+/// "draggable-sheet", "grid-builder", "grid-view", "list-builder",
+/// "list-view", "navigator", "canvas", "swiper"
 class RenderNode {
   final String id;
   final String nodeType;
@@ -43,6 +47,10 @@ class RenderNode {
   final double height;
   final double? fontSize;
   final String? textColor;
+  final String? fontWeight;
+  final double? borderRadius;
+  final double? opacity;
+  final Map<String, String> extraProps;
   final List<String> events;
   final List<RenderNode> children;
 
@@ -57,9 +65,37 @@ class RenderNode {
     required this.height,
     this.fontSize,
     this.textColor,
+    this.fontWeight,
+    this.borderRadius,
+    this.opacity,
+    this.extraProps = const {},
     required this.events,
     required this.children,
   });
+
+  /// 从 extraProps 获取组件特有属性。
+  String? getExtraProp(String key) => extraProps[key];
+
+  /// 从 extraProps 获取布尔值属性。
+  bool getExtraPropBool(String key, {bool defaultValue = false}) {
+    final val = extraProps[key];
+    if (val == null) return defaultValue;
+    return val == 'true' || val == '1';
+  }
+
+  /// 从 extraProps 获取数字属性。
+  double? getExtraPropDouble(String key) {
+    final val = extraProps[key];
+    if (val == null) return null;
+    return double.tryParse(val);
+  }
+
+  /// 从 extraProps 获取整数属性。
+  int? getExtraPropInt(String key) {
+    final val = extraProps[key];
+    if (val == null) return null;
+    return int.tryParse(val);
+  }
 
   @override
   int get hashCode =>
@@ -73,6 +109,10 @@ class RenderNode {
       height.hashCode ^
       fontSize.hashCode ^
       textColor.hashCode ^
+      fontWeight.hashCode ^
+      borderRadius.hashCode ^
+      opacity.hashCode ^
+      extraProps.hashCode ^
       events.hashCode ^
       children.hashCode;
 
@@ -91,6 +131,9 @@ class RenderNode {
           height == other.height &&
           fontSize == other.fontSize &&
           textColor == other.textColor &&
+          fontWeight == other.fontWeight &&
+          borderRadius == other.borderRadius &&
+          opacity == other.opacity &&
           events == other.events &&
           children == other.children;
 }

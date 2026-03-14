@@ -75,6 +75,44 @@ pub enum VNodeType {
     List,
     /// 轮播 → `PageView`
     Swiper,
+    /// 图标 → `Icon`
+    Icon,
+    /// 富文本 → `RichText`
+    RichText,
+    /// 多选框 → `Checkbox`
+    Checkbox,
+    /// 多选框组 → 容器
+    CheckboxGroup,
+    /// 表单容器
+    Form,
+    /// 选择器 → `CupertinoPicker`
+    Picker,
+    /// 嵌入式选择器
+    PickerView,
+    /// 单选框 → `Radio`
+    Radio,
+    /// 单选框组 → 容器
+    RadioGroup,
+    /// 滑动选择器 → `Slider`
+    Slider,
+    /// 开关选择器 → `Switch`
+    Switch,
+    /// 多行输入框 → `TextField(maxLines: null)`
+    Textarea,
+    /// 可拖拽底部面板 → `DraggableScrollableSheet`
+    DraggableSheet,
+    /// 网格构造器
+    GridBuilder,
+    /// 网格视图 → `GridView`
+    GridView,
+    /// 列表构造器
+    ListBuilder,
+    /// 列表视图 → `ListView`
+    ListView,
+    /// 导航组件
+    Navigator,
+    /// 画布 → `CustomPaint`
+    Canvas,
 }
 
 // ---------------------------------------------------------------------------
@@ -343,6 +381,25 @@ mod tests {
             ("scroll-view", VNodeType::ScrollView),
             ("list", VNodeType::List),
             ("swiper", VNodeType::Swiper),
+            ("icon", VNodeType::Icon),
+            ("rich-text", VNodeType::RichText),
+            ("checkbox", VNodeType::Checkbox),
+            ("checkbox-group", VNodeType::CheckboxGroup),
+            ("form", VNodeType::Form),
+            ("picker", VNodeType::Picker),
+            ("picker-view", VNodeType::PickerView),
+            ("radio", VNodeType::Radio),
+            ("radio-group", VNodeType::RadioGroup),
+            ("slider", VNodeType::Slider),
+            ("switch", VNodeType::Switch),
+            ("textarea", VNodeType::Textarea),
+            ("draggable-sheet", VNodeType::DraggableSheet),
+            ("grid-builder", VNodeType::GridBuilder),
+            ("grid-view", VNodeType::GridView),
+            ("list-builder", VNodeType::ListBuilder),
+            ("list-view", VNodeType::ListView),
+            ("navigator", VNodeType::Navigator),
+            ("canvas", VNodeType::Canvas),
         ];
 
         for (name, expected) in types {

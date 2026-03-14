@@ -1606,8 +1606,17 @@ impl SseDecode for crate::api::poc_render::RenderNode {
         let mut var_height = <f64>::sse_decode(deserializer);
         let mut var_fontSize = <Option<f64>>::sse_decode(deserializer);
         let mut var_textColor = <Option<String>>::sse_decode(deserializer);
+        let mut var_fontWeight = <Option<String>>::sse_decode(deserializer);
+        let mut var_borderRadius = <Option<f64>>::sse_decode(deserializer);
+        let mut var_opacity = <Option<f64>>::sse_decode(deserializer);
+        let mut var_extraPropsKeys = <Vec<String>>::sse_decode(deserializer);
+        let mut var_extraPropsValues = <Vec<String>>::sse_decode(deserializer);
         let mut var_events = <Vec<String>>::sse_decode(deserializer);
         let mut var_children = <Vec<crate::api::poc_render::RenderNode>>::sse_decode(deserializer);
+        let mut extra_props_map = std::collections::HashMap::new();
+        for (k, v) in var_extraPropsKeys.into_iter().zip(var_extraPropsValues.into_iter()) {
+            extra_props_map.insert(k, v);
+        }
         return crate::api::poc_render::RenderNode {
             id: var_id,
             node_type: var_nodeType,
@@ -1619,6 +1628,10 @@ impl SseDecode for crate::api::poc_render::RenderNode {
             height: var_height,
             font_size: var_fontSize,
             text_color: var_textColor,
+            font_weight: var_fontWeight,
+            border_radius: var_borderRadius,
+            opacity: var_opacity,
+            extra_props: extra_props_map,
             events: var_events,
             children: var_children,
         };
@@ -1820,6 +1833,7 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::error_api::QBError>
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::poc_render::RenderNode {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        let (extra_keys, extra_vals): (Vec<String>, Vec<String>) = self.extra_props.into_iter().unzip();
         [
             self.id.into_into_dart().into_dart(),
             self.node_type.into_into_dart().into_dart(),
@@ -1831,6 +1845,11 @@ impl flutter_rust_bridge::IntoDart for crate::api::poc_render::RenderNode {
             self.height.into_into_dart().into_dart(),
             self.font_size.into_into_dart().into_dart(),
             self.text_color.into_into_dart().into_dart(),
+            self.font_weight.into_into_dart().into_dart(),
+            self.border_radius.into_into_dart().into_dart(),
+            self.opacity.into_into_dart().into_dart(),
+            extra_keys.into_into_dart().into_dart(),
+            extra_vals.into_into_dart().into_dart(),
             self.events.into_into_dart().into_dart(),
             self.children.into_into_dart().into_dart(),
         ]
@@ -2005,6 +2024,12 @@ impl SseEncode for crate::api::poc_render::RenderNode {
         <f64>::sse_encode(self.height, serializer);
         <Option<f64>>::sse_encode(self.font_size, serializer);
         <Option<String>>::sse_encode(self.text_color, serializer);
+        <Option<String>>::sse_encode(self.font_weight, serializer);
+        <Option<f64>>::sse_encode(self.border_radius, serializer);
+        <Option<f64>>::sse_encode(self.opacity, serializer);
+        let (extra_keys, extra_vals): (Vec<String>, Vec<String>) = self.extra_props.into_iter().unzip();
+        <Vec<String>>::sse_encode(extra_keys, serializer);
+        <Vec<String>>::sse_encode(extra_vals, serializer);
         <Vec<String>>::sse_encode(self.events, serializer);
         <Vec<crate::api::poc_render::RenderNode>>::sse_encode(self.children, serializer);
     }

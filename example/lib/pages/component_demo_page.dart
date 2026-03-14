@@ -30,13 +30,18 @@ class _ComponentDemoPageState extends State<ComponentDemoPage> {
   function id() { return "ui" + (uid++); }
 
   function text(content, opts) {
-    var s = { height: opts.height || 20 };
+    var s = {};
+    if (opts.height) s.height = opts.height;
     if (opts.fontSize) s.fontSize = opts.fontSize;
     if (opts.color) s.color = opts.color;
     if (opts.fontWeight) s.fontWeight = opts.fontWeight;
     if (opts.flexGrow) s.flexGrow = opts.flexGrow;
     if (opts.width) s.width = opts.width;
-    return { id: id(), type: "text", text: content, style: s };
+    var extra = {};
+    if (opts.maxLines) extra["maxLines"] = opts.maxLines;
+    var node = { id: id(), type: "text", text: content, style: s };
+    for (var k in extra) node[k] = extra[k];
+    return node;
   }
 
   function box(children, style) {
@@ -152,9 +157,9 @@ class _ComponentDemoPageState extends State<ComponentDemoPage> {
         text(title, { fontSize: 16, color: "#222", fontWeight: "bold", height: 22 })
       ], { paddingLeft: 16, paddingRight: 16, paddingTop: 8 }),
 
-      // 正文
+      // 正文 (多行: 不设 height, Rust 自动估算换行高度; 限制最多 3 行)
       box([
-        text(content, { fontSize: 14, color: "#666", height: 20 })
+        text(content, { fontSize: 14, color: "#666", maxLines: 3 })
       ], { paddingLeft: 16, paddingRight: 16, paddingTop: 4 }),
 
       // 配图

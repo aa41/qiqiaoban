@@ -42,6 +42,10 @@ pub struct RenderNode {
     pub height: f64,
     pub font_size: Option<f64>,
     pub text_color: Option<String>,
+    pub font_weight: Option<String>,
+    pub border_radius: Option<f64>,
+    pub opacity: Option<f64>,
+    pub extra_props: HashMap<String, String>,
     pub events: Vec<String>,
     pub children: Vec<RenderNode>,
 }
@@ -143,7 +147,7 @@ pub fn render_from_js(
     let mut layout_tree = QBLayoutTree::new();
     let mut node_meta: HashMap<u64, NodeMeta> = HashMap::new();
 
-    let root_id = build_layout_node(&tree_data, &mut layout_tree, &mut node_meta)
+    let root_id = build_layout_node(&tree_data, &mut layout_tree, &mut node_meta, viewport_width)
         .map_err(|e| format!("[qb:render] Step 4 FAILED: {e}"))?;
     eprintln!("[qb:render] Step 4: {} nodes built", node_meta.len());
 
@@ -175,6 +179,10 @@ struct NodeMeta {
     color: Option<String>,
     font_size: Option<f64>,
     text_color: Option<String>,
+    font_weight: Option<String>,
+    border_radius: Option<f64>,
+    opacity: Option<f64>,
+    extra_props: HashMap<String, String>,
     children: Vec<u64>,
 }
 
@@ -186,6 +194,7 @@ fn build_layout_node(
     node_json: &serde_json::Value,
     tree: &mut QBLayoutTree,
     meta_map: &mut HashMap<u64, NodeMeta>,
+    viewport_width: f64,
 ) -> Result<u64, String> {
     let obj = node_json
         .as_object()
@@ -202,6 +211,39 @@ fn build_layout_node(
     let color = style_val.get("backgroundColor").and_then(|v| v.as_str()).map(String::from);
     let font_size = style_val.get("fontSize").and_then(|v| v.as_f64());
     let text_color = style_val.get("color").and_then(|v| v.as_str()).map(String::from);
+    let font_weight = style_val.get("fontWeight").and_then(|v| v.as_str()).map(String::from);
+    let border_radius = style_val.get("borderRadius").and_then(|v| v.as_f64());
+    let opacity = style_val.get("opacity").and_then(|v| v.as_f64());
+
+    // ---- 提取组件特有属性 (JSON 顶层除 id/type/text/style/children 之外的字段) ----
+    let mut extra_props = HashMap::new();
+    let reserved_keys = ["id", "type", "text", "style", "children"];
+    for (key, val) in obj.iter() {
+        if reserved_keys.contains(&key.as_str()) {
+            continue;
+        }
+        let str_val = match val {
+            serde_json::Value::String(s) => s.clone(),
+            serde_json::Value::Bool(b) => b.to_string(),
+            serde_json::Value::Number(n) => n.to_string(),
+            serde_json::Value::Null => "null".to_string(),
+            other => other.to_string(),
+        };
+        extra_props.insert(key.clone(), str_val);
+    }
+
+    // ---- 提取 style 内的渲染属性到 extra_props (Dart 侧需要) ----
+    let rendering_style_keys = [
+        "textAlign", "overflow", "textOverflow",
+        "justifyContent", "alignItems", "alignSelf",
+        "whiteSpace", "wordBreak", "lineClamp",
+        "fontWeight",
+    ];
+    for key in &rendering_style_keys {
+        if let Some(val) = style_val.get(*key).and_then(|v| v.as_str()) {
+            extra_props.insert(key.to_string(), val.to_string());
+        }
+    }
 
     // ---- scroll-view: 设置 overflow 让子节点使用自然尺寸 ----
     if node_type == "scroll-view" {
@@ -212,28 +254,54 @@ fn build_layout_node(
     // ---- 固定尺寸节点不压缩 ----
     // 有显式 height 且没有 flexGrow 的节点，默认 flex_shrink=0
     // 防止 bottomNav 等固定高度组件被 Taffy 压缩
+    // 但 text 节点除外 — text 需要能被父容器约束宽度以实现换行
     let has_explicit_height = !matches!(style.height, QBDimension::Auto);
     let has_flex_grow = style.flex_grow > 0.0;
     let user_set_shrink = style_val.get("flexShrink").is_some();
-    if has_explicit_height && !has_flex_grow && !user_set_shrink {
+    if has_explicit_height && !has_flex_grow && !user_set_shrink && node_type != "text" {
         style.flex_shrink = 0.0;
     }
 
-    // ---- 文本宽度估算 ----
+    // ---- 文本尺寸估算 (宽度 + 多行高度) ----
     // Taffy 是纯布局引擎，没有文本测量能力。
-    // 如果 text 节点没有显式 width，根据字符数和字号估算宽度。
-    if node_type == "text" && matches!(style.width, QBDimension::Auto) {
+    // 1) 短文本 (宽度 <= 容器) → 使用估算宽度，单行高度
+    // 2) 长文本 (宽度 > 容器) → 宽度设为容器可用宽度，高度按换行行数估算
+    if node_type == "text" {
         if let Some(ref txt) = text {
             let fs = font_size.unwrap_or(14.0) as f32;
             let estimated_width = estimate_text_width(txt, fs);
-            style.width = QBDimension::Length(estimated_width);
+            let max_line_width = (viewport_width as f32) * 0.85;
+            let line_height = fs * 1.4;
+
+            if matches!(style.width, QBDimension::Auto) {
+                if estimated_width <= max_line_width {
+                    // 短文本: 使用估算宽度
+                    style.width = QBDimension::Length(estimated_width);
+                } else {
+                    // 长文本: 使用 100% 宽度 (让 Taffy 按父容器约束)
+                    style.width = QBDimension::Percent(100.0);
+                }
+            }
+
+            if matches!(style.height, QBDimension::Auto) {
+                if estimated_width <= max_line_width {
+                    // 短文本: 单行高度
+                    style.height = QBDimension::Length(line_height);
+                } else if max_line_width > 0.0 {
+                    // 长文本: 按换行行数估算高度
+                    let num_lines = (estimated_width / max_line_width).ceil();
+                    style.height = QBDimension::Length(num_lines * line_height);
+                } else {
+                    style.height = QBDimension::Length(line_height);
+                }
+            }
         }
     }
 
     let children_json = obj.get("children").and_then(|v| v.as_array()).cloned().unwrap_or_default();
     let mut child_ids = Vec::new();
     for child_json in &children_json {
-        child_ids.push(build_layout_node(child_json, tree, meta_map)?);
+        child_ids.push(build_layout_node(child_json, tree, meta_map, viewport_width)?);
     }
 
     // scroll-view: 子节点 flex_shrink=0，保持自然尺寸不压缩
@@ -250,7 +318,11 @@ fn build_layout_node(
         tree.add_node_with_children(&style, &child_ids)
     };
 
-    meta_map.insert(node_id, NodeMeta { id, node_type, text, color, font_size, text_color, children: child_ids });
+    meta_map.insert(node_id, NodeMeta {
+        id, node_type, text, color, font_size, text_color,
+        font_weight, border_radius, opacity, extra_props,
+        children: child_ids,
+    });
     Ok(node_id)
 }
 
@@ -305,6 +377,29 @@ fn is_wide_char(ch: char) -> bool {
 // 内部: 解析 style
 // ---------------------------------------------------------------------------
 
+/// 解析尺寸值: 支持数字 (200) 和百分比字符串 ("100%")。
+fn parse_dimension_value(val: &serde_json::Value) -> Option<QBDimension> {
+    if let Some(v) = val.as_f64() {
+        return Some(QBDimension::Length(v as f32));
+    }
+    if let Some(s) = val.as_str() {
+        let trimmed = s.trim();
+        if trimmed == "auto" {
+            return Some(QBDimension::Auto);
+        }
+        if let Some(pct) = trimmed.strip_suffix('%') {
+            if let Ok(v) = pct.trim().parse::<f32>() {
+                return Some(QBDimension::Percent(v));
+            }
+        }
+        // 尝试纯数字字符串
+        if let Ok(v) = trimmed.parse::<f32>() {
+            return Some(QBDimension::Length(v));
+        }
+    }
+    None
+}
+
 fn parse_style(style: &serde_json::Value) -> QBStyle {
     let mut s = QBStyle::default();
 
@@ -342,10 +437,25 @@ fn parse_style(style: &serde_json::Value) -> QBStyle {
         };
     }
 
-    if let Some(v) = style.get("width").and_then(|v| v.as_f64()) { s.width = QBDimension::Length(v as f32); }
-    if let Some(v) = style.get("height").and_then(|v| v.as_f64()) { s.height = QBDimension::Length(v as f32); }
-    if let Some(v) = style.get("minWidth").and_then(|v| v.as_f64()) { s.min_width = QBDimension::Length(v as f32); }
-    if let Some(v) = style.get("minHeight").and_then(|v| v.as_f64()) { s.min_height = QBDimension::Length(v as f32); }
+    // 尺寸 — 支持数字和百分比字符串
+    if let Some(val) = style.get("width") {
+        if let Some(dim) = parse_dimension_value(val) { s.width = dim; }
+    }
+    if let Some(val) = style.get("height") {
+        if let Some(dim) = parse_dimension_value(val) { s.height = dim; }
+    }
+    if let Some(val) = style.get("minWidth") {
+        if let Some(dim) = parse_dimension_value(val) { s.min_width = dim; }
+    }
+    if let Some(val) = style.get("minHeight") {
+        if let Some(dim) = parse_dimension_value(val) { s.min_height = dim; }
+    }
+    if let Some(val) = style.get("maxWidth") {
+        if let Some(dim) = parse_dimension_value(val) { s.max_width = dim; }
+    }
+    if let Some(val) = style.get("maxHeight") {
+        if let Some(dim) = parse_dimension_value(val) { s.max_height = dim; }
+    }
     if let Some(v) = style.get("flexGrow").and_then(|v| v.as_f64()) { s.flex_grow = v as f32; }
     if let Some(v) = style.get("flexShrink").and_then(|v| v.as_f64()) { s.flex_shrink = v as f32; }
 
@@ -387,32 +497,51 @@ fn collect_render_tree(
     let layout = tree.get_layout(node_id);
 
     let meta = meta_map.get(&node_id);
-    let (id, node_type, text, color, font_size, text_color, child_ids) = match meta {
-        Some(m) => (
-            m.id.clone(), m.node_type.clone(), m.text.clone(),
-            m.color.clone(), m.font_size, m.text_color.clone(),
-            &m.children,
-        ),
-        None => (
-            "unknown".to_string(), "view".to_string(), None, None, None, None,
-            &Vec::new() as &Vec<u64>,
-        ),
-    };
 
-    let children: Vec<RenderNode> = child_ids
+    let children: Vec<RenderNode> = meta
+        .map(|m| &m.children)
+        .unwrap_or(&Vec::new())
         .iter()
         .map(|&cid| collect_render_tree(cid, tree, meta_map))
         .collect();
 
-    RenderNode {
-        id, node_type, text, color,
-        x: layout.x as f64,
-        y: layout.y as f64,
-        width: layout.width as f64,
-        height: layout.height as f64,
-        font_size, text_color,
-        events: vec![],
-        children,
+    match meta {
+        Some(m) => RenderNode {
+            id: m.id.clone(),
+            node_type: m.node_type.clone(),
+            text: m.text.clone(),
+            color: m.color.clone(),
+            x: layout.x as f64,
+            y: layout.y as f64,
+            width: layout.width as f64,
+            height: layout.height as f64,
+            font_size: m.font_size,
+            text_color: m.text_color.clone(),
+            font_weight: m.font_weight.clone(),
+            border_radius: m.border_radius,
+            opacity: m.opacity,
+            extra_props: m.extra_props.clone(),
+            events: vec![],
+            children,
+        },
+        None => RenderNode {
+            id: "unknown".to_string(),
+            node_type: "view".to_string(),
+            text: None,
+            color: None,
+            x: layout.x as f64,
+            y: layout.y as f64,
+            width: layout.width as f64,
+            height: layout.height as f64,
+            font_size: None,
+            text_color: None,
+            font_weight: None,
+            border_radius: None,
+            opacity: None,
+            extra_props: HashMap::new(),
+            events: vec![],
+            children,
+        },
     }
 }
 
@@ -460,7 +589,7 @@ mod render_debug_tests {
 
         let mut layout_tree = QBLayoutTree::new();
         let mut node_meta: HashMap<u64, NodeMeta> = HashMap::new();
-        let root_id = build_layout_node(&tree_data, &mut layout_tree, &mut node_meta).unwrap();
+        let root_id = build_layout_node(&tree_data, &mut layout_tree, &mut node_meta, 375.0).unwrap();
         layout_tree.compute_layout(root_id, 375.0, 812.0);
         let root = collect_render_tree(root_id, &layout_tree, &node_meta);
 
@@ -533,7 +662,7 @@ mod render_debug_tests {
 
         let mut layout_tree = QBLayoutTree::new();
         let mut node_meta: HashMap<u64, NodeMeta> = HashMap::new();
-        let root_id = build_layout_node(&tree_data, &mut layout_tree, &mut node_meta).unwrap();
+        let root_id = build_layout_node(&tree_data, &mut layout_tree, &mut node_meta, 375.0).unwrap();
         layout_tree.compute_layout(root_id, 375.0, 700.0);
         let root = collect_render_tree(root_id, &layout_tree, &node_meta);
 

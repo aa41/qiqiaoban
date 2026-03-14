@@ -1711,8 +1711,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   RenderNode dco_decode_render_node(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 12)
-      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
+    if (arr.length != 17)
+      throw Exception('unexpected arr length: expect 17 but see ${arr.length}');
+    final extraKeys = dco_decode_list_String(arr[13]);
+    final extraVals = dco_decode_list_String(arr[14]);
+    final extraProps = <String, String>{};
+    for (var i = 0; i < extraKeys.length; i++) {
+      extraProps[extraKeys[i]] = extraVals[i];
+    }
     return RenderNode(
       id: dco_decode_String(arr[0]),
       nodeType: dco_decode_String(arr[1]),
@@ -1724,8 +1730,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       height: dco_decode_f_64(arr[7]),
       fontSize: dco_decode_opt_box_autoadd_f_64(arr[8]),
       textColor: dco_decode_opt_String(arr[9]),
-      events: dco_decode_list_String(arr[10]),
-      children: dco_decode_list_render_node(arr[11]),
+      fontWeight: dco_decode_opt_String(arr[10]),
+      borderRadius: dco_decode_opt_box_autoadd_f_64(arr[11]),
+      opacity: dco_decode_opt_box_autoadd_f_64(arr[12]),
+      extraProps: extraProps,
+      events: dco_decode_list_String(arr[15]),
+      children: dco_decode_list_render_node(arr[16]),
     );
   }
 
@@ -1930,8 +1940,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_height = sse_decode_f_64(deserializer);
     var var_fontSize = sse_decode_opt_box_autoadd_f_64(deserializer);
     var var_textColor = sse_decode_opt_String(deserializer);
+    var var_fontWeight = sse_decode_opt_String(deserializer);
+    var var_borderRadius = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_opacity = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_extraPropsKeys = sse_decode_list_String(deserializer);
+    var var_extraPropsValues = sse_decode_list_String(deserializer);
     var var_events = sse_decode_list_String(deserializer);
     var var_children = sse_decode_list_render_node(deserializer);
+    final extraProps = <String, String>{};
+    for (var i = 0; i < var_extraPropsKeys.length; i++) {
+      extraProps[var_extraPropsKeys[i]] = var_extraPropsValues[i];
+    }
     return RenderNode(
       id: var_id,
       nodeType: var_nodeType,
@@ -1943,6 +1962,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       height: var_height,
       fontSize: var_fontSize,
       textColor: var_textColor,
+      fontWeight: var_fontWeight,
+      borderRadius: var_borderRadius,
+      opacity: var_opacity,
+      extraProps: extraProps,
       events: var_events,
       children: var_children,
     );
@@ -2159,6 +2182,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_f_64(self.height, serializer);
     sse_encode_opt_box_autoadd_f_64(self.fontSize, serializer);
     sse_encode_opt_String(self.textColor, serializer);
+    sse_encode_opt_String(self.fontWeight, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.borderRadius, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.opacity, serializer);
+    sse_encode_list_String(self.extraProps.keys.toList(), serializer);
+    sse_encode_list_String(self.extraProps.values.toList(), serializer);
     sse_encode_list_String(self.events, serializer);
     sse_encode_list_render_node(self.children, serializer);
   }

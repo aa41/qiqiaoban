@@ -5,6 +5,7 @@ import 'package:qiqiaoban/qiqiaoban.dart';
 
 import 'pages/compiler_demo_page.dart';
 import 'pages/component_demo_page.dart';
+import 'pages/component_test_page.dart';
 import 'pages/devtools_demo_page.dart';
 import 'pages/engine_demo_page.dart';
 import 'pages/error_demo_page.dart';
@@ -120,6 +121,13 @@ class HomePage extends StatelessWidget {
                 title: '交互式 UI (信息流)',
                 subtitle: '商业级信息流: Feed + 热榜 + 事件交互',
                 page: const ComponentDemoPage(),
+              ),
+              _DemoItem(
+                icon: Icons.grid_view_rounded,
+                color: Colors.green,
+                title: '组件测试',
+                subtitle: '26 种微信组件属性预览: 表单/视图/内容',
+                page: const ComponentTestPage(),
               ),
               _DemoItem(
                 icon: Icons.error_outline,
